@@ -40,7 +40,7 @@ CHECKPOINT_file=os.path.join(CHECKPOINT_PATH, 'checkpoint.pth.tar')
 # PyTorch TensorBoard support
 from torch.utils.tensorboard import SummaryWriter
 
-print(torch.__version__)
+print("First Print:", torch.__version__)
 
 from TorchClassifier.Datasetutil.Visutil import imshow, vistestresult, matplotlib_imshow
 from TorchClassifier.Datasetutil.Torchdatasetutil import loadTorchdataset
@@ -69,9 +69,9 @@ device = None
 parser = configargparse.ArgParser(description='myTorchClassify')
 parser.add_argument('--data_name', type=str, default='imagenet_blurred',
                     help='data name: imagenet_blurred, tiny-imagenet-200, hymenoptera_data, CIFAR10, MNIST, flower_photos')
-parser.add_argument('--data_type', default='trainonly', choices=['trainonly','trainvalfolder', 'traintestfolder', 'torchvisiondataset'],
+parser.add_argument('--data_type', default='torchvisiondataset', choices=['trainonly','trainvalfolder', 'traintestfolder', 'torchvisiondataset'],
                     help='the type of data') 
-parser.add_argument('--data_path', type=str, default="/data/cmpe249-fa23/ImageClassData",
+parser.add_argument('--data_path', type=str, default="./",
                     help='path to get data') #/Developer/MyRepo/ImageClassificationData; r"E:\Dataset\ImageNet\tiny-imagenet-200"
 parser.add_argument('--img_height', type=int, default=224,
                     help='resize to img height, 224')
@@ -285,7 +285,7 @@ def test_model(model, dataloaders, class_names, criterion, batch_size, key='test
     test_loss = 0.0
     class_correct = list(0. for i in range(numclasses))
     class_total = list(0. for i in range(numclasses))
-
+    print(class_correct)
     model.eval()
 
     if key in dataloaders.keys():
@@ -317,13 +317,19 @@ def test_model(model, dataloaders, class_names, criterion, batch_size, key='test
         # compare predictions to true label
         correct_tensor = pred.eq(target.data.view_as(pred))
         train_on_gpu = torch.cuda.is_available()
+        
         correct = np.squeeze(correct_tensor.numpy()) if not train_on_gpu else np.squeeze(correct_tensor.cpu().numpy())
-
+        print(correct.shape, type(correct), target.data, batch_size)
         # calculate test accuracy for each object class
+        
         for i in range(batch_size):
-            if i<len(target.data):#the actual batch size of the last batch is smaller than the batch_size
+            if i<len(target.data) and len(target.data)>1:#the actual batch size of the last batch is smaller than the batch_size
                 label = target.data[i]
-                class_correct[label] += correct[i].item()
+                # print(label, class_correct[label], correct[i])
+                # class_correct[label] += correct[i].item()
+                # print(i)
+                # print(label.item(), class_correct[label.item()], correct[i])
+                class_correct[label.item()] += correct[i].item()
                 class_total[label] += 1
     
     # average test loss
@@ -378,7 +384,7 @@ def main():
         print(torch.cuda.current_device())
 
         # Get the name of the current GPU
-        print(torch.cuda.get_device_name(torch.cuda.current_device()))
+        print("Somesh's Laptop",torch.cuda.get_device_name(torch.cuda.current_device()))
 
         # Is PyTorch using a GPU?
         print(torch.cuda.is_available())

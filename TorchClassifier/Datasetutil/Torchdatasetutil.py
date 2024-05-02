@@ -326,10 +326,32 @@ def loadtorchvisiondataset(name, path):
         imageslist = [image for image, label in [train_data[i] for i in range(N_IMAGES)]] 
         visimagelistingrid(imageslist)
 
+    elif name == 'flower_photos':
+        
+        data_transform = datapreprocess()
+
+        # datapath = "C:/Users/somes/OneDrive/Documents/GitHub/Deep-Learning/HW 2 Redo/MultiModalClassifier/flower_photos"
+        
+        # train_dir = "C:/Users/somes/OneDrive/Documents/GitHub/Deep-Learning/HW 2 Redo/MultiModalClassifier/flower_photos/train"
+        # val_dir = "C:/Users/somes/OneDrive/Documents/GitHub/Deep-Learning/HW 2 Redo/MultiModalClassifier/flower_photos/val"
+        # test_dir = "C:/Users/somes/OneDrive/Documents/GitHub/Deep-Learning/HW 2 Redo/MultiModalClassifier/flower_photos/test"
+
+        train_dir = os.path.join(datapath, 'train')
+        val_dir = os.path.join(datapath, 'val')
+        test_dir = os.path.join(datapath, 'test')
+        
+        train_data = datasets.ImageFolder(train_dir, transform=data_transform)
+        val_data = datasets.ImageFolder(val_dir, transform=data_transform)
+        test_data = datasets.ImageFolder(test_dir, transform=data_transform)
+        
+
     print(f'Number of training examples: {len(train_data)}')
+    print(f'Number of testing examples: {len(val_data)}')
     print(f'Number of testing examples: {len(test_data)}')
+    print()
     #print(len(test_data))  # 10000
     class_names = train_data.classes
+    print(class_names)
     # specify the image classes
     # classes = ['airplane', 'automobile', 'bird', 'cat', 'deer',
     #         'dog', 'frog', 'horse', 'ship', 'truck']
@@ -379,4 +401,12 @@ def loadtorchvisiondataset(name, path):
     dataset_sizes = {'train': len(train_idx), 'val': len(
         valid_idx), 'test': len(test_data)}
 
+
+    print("Loading Data complete")
+    print()
+    print()
+
     return dataloaders, dataset_sizes, class_names, imageshape
+
+# dataloaders, dataset_sizes, class_names, img_shape = loadTorchdataset(args.data_name,args.data_type, args.data_path, args.img_height, args.img_width, args.batchsize)
+# dataloaders, dataset_sizes, class_names, imageshape =loadtorchvisiondataset('flower_photos', '')

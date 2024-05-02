@@ -87,6 +87,9 @@ def createTorchCNNmodel(name, numclasses, img_shape, pretrained=True):
         return create_resnetmodel1(numclasses, img_shape)
     elif name=='customresnet':
         return setupCustomResNet(numclasses, 'resnet50')
+    elif name=='bagnet':
+        print("Using Bagnet")
+        return create_bagnet(numclasses, img_shape)
     elif name in model_names:
         #return models.__dict__[name](pretrained=pretrained)
         #return create_torchvisionmodel(name, numclasses, pretrained)
@@ -113,6 +116,8 @@ def create_vggmodel1(numclasses, img_shape):
     last_layer = nn.Linear(n_inputs, numclasses)
 
     vgg16.classifier[6] = last_layer
+    
+    return vgg16
     
 class VGG(nn.Module):
     def __init__(self, features, output_dim):
@@ -187,6 +192,8 @@ def create_vggcustommodel(numclasses, img_shape):
     #We could also freeze the classifier layer, however we always want to train the last layer
     for parameter in model.classifier[:-1].parameters():
         parameter.requires_grad = False
+        
+    return model
 
 def get_vgg_layers(config, batch_norm):
 
@@ -236,9 +243,9 @@ class CNNNet1(nn.Module): #32*32 image input
         self.pool = nn.MaxPool2d(2, 2)
 
         # linear layer (64 * 4 * 4 -> 500)
-        self.fc1 = nn.Linear(64 * 4 * 4, 500)
+        self.fc1 = nn.Linear(64 * 28 * 28, 128)
         # linear layer (500 -> 10)
-        self.fc2 = nn.Linear(500, numclasses)
+        self.fc2 = nn.Linear(128, numclasses)
         # dropout layer (p=0.25)
         self.dropout = nn.Dropout(0.25)
 
@@ -259,7 +266,7 @@ class CNNNet1(nn.Module): #32*32 image input
         # add 2nd hidden layer, with relu activation function
         x = self.fc2(x) # 500 -> 10
         return x
-
+    
 def create_cnnmodel1(numclasses, img_shape):
     
     # define the CNN architecture
@@ -267,10 +274,10 @@ def create_cnnmodel1(numclasses, img_shape):
     print(model)
     return model
 
-
 class MLP(nn.Module): #for MNIST dataset
     def __init__(self, input_dim, output_dim):
         super().__init__()
+        print("MLP HERE", input_dim)
         #three linear layers
         #take the input batch of images and flatten them so they can be passed into the linear layers
         self.input_fc = nn.Linear(input_dim, 250) #hidden dimensions of 250 elements
@@ -296,7 +303,7 @@ class MLP(nn.Module): #for MNIST dataset
 
 def create_mlpmodel1(numclasses, img_shape):
     #for MNIST dataset
-    INPUT_DIM = img_shape[1]*img_shape[2]#28 * 28
+    INPUT_DIM = img_shape[0]*img_shape[1]*img_shape[2]#28 * 28
     OUTPUT_DIM = numclasses
     model = MLP(INPUT_DIM, OUTPUT_DIM)
     print(model)
@@ -306,12 +313,11 @@ def create_mlpmodel1(numclasses, img_shape):
             print("trainable parameters:", p.numel()) #PyTorch torch.numel() method returns the total number of elements in the input tensor.
     return model
 
-
 class LeNet(nn.Module):#for 28*28 MNIST dataset
     def __init__(self, output_dim):
         super().__init__()
 
-        self.conv1 = nn.Conv2d(in_channels = 1, 
+        self.conv1 = nn.Conv2d(in_channels = 3, 
                                out_channels = 6, 
                                kernel_size = 5)
         
@@ -319,35 +325,39 @@ class LeNet(nn.Module):#for 28*28 MNIST dataset
                                out_channels = 16, 
                                kernel_size = 5)
         
-        self.fc_1 = nn.Linear(16 * 4 * 4, 120)
+        self.fc_1 = nn.Linear(16 * 53 * 53, 120)
         self.fc_2 = nn.Linear(120, 84)
         self.fc_3 = nn.Linear(84, output_dim)
 
     def forward(self, x):
 
         #x = [batch size, 1, 28, 28]
-        
+        # print("First",x.shape)
         x = self.conv1(x)
-        
+        # print("second",x.shape)
         #x = [batch size, 6, 24, 24]
         
         x = F.max_pool2d(x, kernel_size = 2)
-        
+        # print("third",x.shape)
         #x = [batch size, 6, 12, 12]
         
         x = F.relu(x)
         
+        # print("fourth",x.shape)
+        
         x = self.conv2(x)
         
         #x = [batch size, 16, 8, 8]
+        # print("fifth",x.shape)
         
         x = F.max_pool2d(x, kernel_size = 2)
         
         #x = [batch size, 16, 4, 4]
-        
+        # print("sixth",x.shape)
         x = F.relu(x)
-        
+        # print("seventh",x.shape)
         x = x.view(x.shape[0], -1)
+        # print(x.shape)
         
         #x = [batch size, 16*4*4 = 256]
         
@@ -381,7 +391,6 @@ def create_lenet(numclasses, img_shape):
     print(f'The model has {num_trainparameters} trainable parameters')
     return model
 
-
 class AlexNet(nn.Module):
     def __init__(self, output_dim):
         super().__init__()
@@ -404,7 +413,7 @@ class AlexNet(nn.Module):
         
         self.classifier = nn.Sequential(
             nn.Dropout(0.5),
-            nn.Linear(256 * 2 * 2, 4096),
+            nn.Linear(256 * 14 * 14, 4096),
             nn.ReLU(inplace = True),
             nn.Dropout(0.5),
             nn.Linear(4096, 4096),
@@ -432,7 +441,6 @@ def create_AlexNet(numclasses, img_shape):
     print(f'The model has {num_trainparameters} trainable parameters')
     return model
 
-
 def create_resnetmodel1(numclasses, img_shape):
     #model_ft = models.resnet18(pretrained=True) #Downloading: "https://download.pytorch.org/models/resnet18-5c106cde.pth" to /home/lkk/.cache/torch/hub/checkpoints/resnet18-5c106cde.pth
     model_ft = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
@@ -442,43 +450,72 @@ def create_resnetmodel1(numclasses, img_shape):
     model_ft.fc = nn.Linear(num_ftrs, numclasses)
     return model_ft
 
-#https://pytorch.org/vision/stable/models.html
-# def create_torchvisionmodel(name, numclasses, pretrained):
-#     if pretrained==True:
-#         print("=> using torchvision pre-trained model '{}'".format(name))
-#         #model = models.__dict__[name](weights="IMAGENET1K_V2") #(pretrained=True)
-#         model = get_model(name, weights="DEFAULT")
-#     else:
-#         print("=> using torchvision model '{}'".format(name))
-#         #model = models.__dict__[name](weights=None)
-#         model = get_model(name, weights=None)
-    
-#     # Print a summary using torchinfo (uncomment for actual output)
-#     summary(model=model, 
-#             input_size=(32, 3, 224, 224), # make sure this is "input_size", not "input_shape"
-#             # col_names=["input_size"], # uncomment for smaller output
-#             col_names=["input_size", "output_size", "num_params", "trainable"],
-#             col_width=20,
-#             row_settings=["var_names"]
-#     ) 
-    
-    
-#     for param in model.parameters():
-#         param.requires_grad = False
-    
-#     print(model.heads.head.in_features)
-#     num_ftrs = model.heads.head.in_features #768
-#     # Recreate the classifier layer and seed it to the target device
-#     model.heads = torch.nn.Sequential(
-#         torch.nn.Dropout(p=0.2, inplace=True), 
-#         torch.nn.Linear(in_features=num_ftrs, 
-#                         out_features=numclasses, # same number of output units as our number of classes
-#                         bias=True))#.to('cuda')
+import torch.nn as nn
 
-#     # Parameters of newly constructed modules have requires_grad=True by default
-#     # num_ftrs = model.fc.in_features 
-#     # model.fc = nn.Linear(num_ftrs, numclasses) #new fully connected layer
-#     return model
+class BagNet(nn.Module):
+    def __init__(self, num_classes):
+        super(BagNet, self).__init__()
+        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=1)
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.conv3 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
+        self.conv4 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
+        self.fc1 = nn.Linear(64 * 14 * 14, 128)  # Adjusted input size
+        self.fc2 = nn.Linear(128, num_classes)
+
+    def forward(self, x):
+        x = nn.functional.relu(self.conv1(x))
+        x = self.pool(x)
+        x = nn.functional.relu(self.conv2(x))
+        x = self.pool(x)
+        x = nn.functional.relu(self.conv3(x))
+        x = self.pool(x)
+        x = nn.functional.relu(self.conv4(x))
+        x = self.pool(x)
+        x = x.view(x.size(0), -1)
+        x = nn.functional.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
+    # def __init__(self, num_classes):
+    #     super(BagNet, self).__init__()
+    #     self.conv1 = nn.Conv2d(3, 32, kernel_size=3)
+    #     self.conv2 = nn.Conv2d(32, 64, kernel_size=3)
+    #     self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+    #     self.conv3 = nn.Conv2d(64, 128, kernel_size=3)
+    #     self.conv4 = nn.Conv2d(128, 128, kernel_size=3)
+    #     self.conv5 = nn.Conv2d(128, 256, kernel_size=3)
+    #     self.conv6 = nn.Conv2d(256, 256, kernel_size=3)
+    #     self.conv7 = nn.Conv2d(256, 512, kernel_size=3)
+    #     self.fc1 = nn.Linear(512 * 23 * 23, 1024)
+    #     self.dropout1 = nn.Dropout(0.5)
+    #     self.fc2 = nn.Linear(1024, 512)
+    #     self.dropout2 = nn.Dropout(0.5)
+    #     self.fc3 = nn.Linear(512, num_classes)
+
+    # def forward(self, x):
+    #     x = nn.functional.relu(self.conv1(x))
+    #     x = nn.functional.relu(self.conv2(x))
+    #     x = self.pool(x)
+    #     x = nn.functional.relu(self.conv3(x))
+    #     x = nn.functional.relu(self.conv4(x))
+    #     x = self.pool(x)
+    #     x = nn.functional.relu(self.conv5(x))
+    #     x = nn.functional.relu(self.conv6(x))
+    #     x = nn.functional.relu(self.conv7(x))
+    #     x = self.pool(x)
+    #     x = x.view(-1, 512 * 23 * 23)
+    #     x = nn.functional.relu(self.fc1(x))
+    #     x = self.dropout1(x)
+    #     x = nn.functional.relu(self.fc2(x))
+    #     x = self.dropout2(x)
+    #     x = self.fc3(x)
+    #     return x
+    
+    
+def create_bagnet(num_classes, img_shape):
+    model = BagNet(num_classes)
+    return model
 
 def create_torchvisionmodel(modulename, numclasses, freezeparameters=True, pretrained=True, dropoutp=0.2):
     model_names=list_models(module=torchvision.models)
@@ -502,7 +539,7 @@ def create_torchvisionmodel(modulename, numclasses, freezeparameters=True, pretr
         lastlayer=lastmoduleinlist[-1]
         if isinstance(lastlayer, nn.Linear):
             print('Linear layer')
-            newclassifier = nn.Linear(in_features=lastlayer.in_features, out_features=classnum)
+            newclassifier = nn.Linear(in_features=lastlayer.in_features, out_features=numclasses)
         elif isinstance(lastlayer, nn.Sequential):
             print('Sequential layer')
             lastlayerlist=list(lastlayer) #[-1] #last layer

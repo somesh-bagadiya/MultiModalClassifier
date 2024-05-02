@@ -84,7 +84,7 @@ def visbatchimage(images, labels, classes):
         ax = fig.add_subplot(2, int(20/2), idx+1, xticks=[], yticks=[])
         imshowhelper(images[idx])
         ax.set_title(classes[labels[idx]])
-    fig.savefig('./outputs/torchonebatchimage.png')
+    fig.savefig('./visbatchimage.png')
 
 def vistestresult(images, labels, preds, classes, path='./outputs/'):
     #images.numpy()
